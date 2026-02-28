@@ -12,6 +12,7 @@ A modern, production-ready web application for extracting text from images using
 - **Loading Indicator**: Visual feedback during OCR processing
 - **Error Handling**: Comprehensive error handling with user-friendly messages
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Dark Mode**: Light/dark color scheme with toggle and automatic preference detection
 - **Production-Ready**: Clean architecture, proper error handling, and security measures
 
 ## 📋 Supported Formats
@@ -22,8 +23,26 @@ A modern, production-ready web application for extracting text from images using
 
 ## 🌍 Supported Languages (OCR)
 
+By default the project ships with English and Bulgarian data. The backend scans its directory for all `*.traineddata` files and makes the codes available to the frontend. When running in Docker the build also downloads a couple additional packs (Spanish and French) so they are available automatically.
+
 - **English** (eng)
 - **Bulgarian** (bul)
+- **Spanish** (spa) *(docker build will fetch this)*
+- **French** (fra) *(docker build will fetch this)*
+
+You can add any other language simply by placing the corresponding `.traineddata` file in the `backend` folder or in a `backend/languages` subfolder (the server will look in both locations). This keeps custom data organized. The Docker build also copies from `backend/languages` automatically.
+
+A small helper script is included to make this easy:
+
+```bash
+# from project root
+node backend/scripts/download-traineddata.js spa fra deu
+# or via npm script inside backend
+cd backend && npm run download-langs -- spa fra deu
+```
+
+This will save `spa.traineddata`, `fra.traineddata`, `deu.traineddata` etc. in `backend/`. After adding or removing files, restart the backend or rebuild the Docker image and reload the frontend; the checkbox list will automatically reflect the changes.
+
 
 ## 🛠️ Tech Stack
 
@@ -76,6 +95,8 @@ IMGtoTXT/
 │   ├── tailwind.config.js           # Tailwind configuration
 │   ├── postcss.config.js            # PostCSS configuration
 │   ├── vite.config.js               # Vite configuration
+│   ├── scripts/                     # utility scripts (download traineddata, etc.)
+│   │   └── download-traineddata.js  # helper to fetch language packs
 │   ├── .env.example                 # Environment variables template
 │   ├── .gitignore
 │   └── package.json
@@ -84,6 +105,26 @@ IMGtoTXT/
 ```
 
 ## 🚀 Quick Start
+
+### Language Selection
+Before uploading an image, choose one or more OCR languages in the upload panel. The frontend fetches a list of available languages from the backend and displays them as checkboxes; you can select any combination and the languages will be joined with `+` when sent to the server. The upload logic reads the current checkbox state directly from the DOM to avoid React state timing issues.
+
+#### Auto‑detect mode
+If you'd rather not pick a language, check the **Auto‑detect language** box above the list. When enabled the client sends `lang=auto`, prompting the server to analyze the image and guess the correct language automatically.
+
+The detection strategy:
+1. a quick OCR pass is performed across all available traineddata packs.
+2. the resulting text (first ~2000 characters) is run through a language detector (`franc` – added as a dependency in the backend) limited to installed languages.
+3. if franc returns a specific code, a full OCR pass is run with that single language for improved accuracy; otherwise the initial result is used.
+
+The detected language is returned in `data.detected` and displayed under the results.
+
+
+The backend automatically detects which `.traineddata` files it has access to and exposes them via the `/api/ocr/languages` endpoint. This makes it easy to add new languages later (see below).
+
+### Theme Toggle
+Once running, use the 🌙/☀️ button in the header to switch between light and dark modes. The choice is remembered in `localStorage` and defaults to your system preference.
+
 
 ### Prerequisites
 - **Node.js 16+** (download from [nodejs.org](https://nodejs.org/))
@@ -152,6 +193,9 @@ http://localhost:5173
 
 ### Alternative: Docker Setup
 
+The backend image now includes Spanish and French OCR data by default. It also exposes an endpoint (`GET /api/ocr/languages`) that returns all detected language codes and names; the frontend uses this to build the checkbox list.
+
+
 **Prerequisites:**
 - **Docker** (download from [docker.com](https://www.docker.com/products/docker-desktop))
 - **Docker Compose** (included with Docker Desktop)
@@ -197,7 +241,13 @@ Extract text from an uploaded image.
 - **Body**: 
   - `image` (file): JPEG or PNG image (max 10MB)
 
+**Request body:**
+- `image` (file): JPEG or PNG image (max 10MB)
+- `lang` (string, optional): OCR language code(s) to use (e.g. `eng`, `bul`, `eng+bul`). Special value `auto` triggers automatic language detection. Defaults to `eng+bul`.
+
 **Response (Success):**
+- `data.detected` (string|null): if auto-detection was used, this contains the language that was guessed.
+
 ```json
 {
   "success": true,
@@ -342,9 +392,12 @@ MIT License - feel free to use this project for personal and commercial purposes
 
 ## 💡 Future Enhancements
 
-- [ ] Multi-language support
-- [ ] Language selection dropdown for OCR
-- [ ] Dark mode
+- [X] Multi-language support
+- [X] Language selection dropdown for OCR
+- [X] Dark mode
+- [ ] Batch Processing
+- [ ] Multiple Export Formats
+- [ ] Image Editing Tools
 
 ---
 

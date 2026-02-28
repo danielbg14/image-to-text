@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config } from './config.js';
 import ocrRoutes from './routes/ocr.js';
+import { getAvailableLanguages } from './utils/languages.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -34,4 +35,6 @@ app.listen(config.port, () => {
   console.log(`\n🚀 Server running at http://localhost:${config.port}`);
   console.log(`📁 Node Environment: ${config.nodeEnv}`);
   console.log(`🌐 CORS Origin: ${config.corsOrigin}\n`);
+  const langs = getAvailableLanguages().map((l) => l.code).join(', ');
+  console.log(`Available OCR languages: ${langs}`);
 });

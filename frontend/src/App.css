@@ -20,3 +20,8 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* smooth transition for global background/text changes when toggling themes */
+html, body {
+  transition: background-color 0.5s ease, color 0.5s ease, background-image 1s ease;
+}
